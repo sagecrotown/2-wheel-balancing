@@ -1,0 +1,22 @@
+#!/home/sage/code/venv/bin/python3
+
+import sys
+import tty
+import termios
+
+def get_key():
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)  # read 1 character
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
+
+print("Press any key (press 'q' to quit):")
+while True:
+    key = get_key()
+    print(f"You pressed: {key}")
+    if key == 'q':
+        break
