@@ -13,7 +13,7 @@ import termios
 import select
 
 # define motor pins
-motorA = Motor(forward = 27, backward = 22)
+motorA = Motor(forward = 11, backward = 13)
 motorB = Motor(forward = 23, backward = 24)
 
 # save terminal settings

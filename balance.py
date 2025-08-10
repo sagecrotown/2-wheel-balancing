@@ -97,7 +97,7 @@ class Balancing:
                 self.motorA = Motor(forward=aForward, backward=aBackward)
                 self.motorB = Motor(forward=bForward, backward=bBackward)
 
-                self.dev = InputDevice(inputDev)
+                self.dev = inputDev
                 self.mpu = MPU
 
                 self.kp = KP
@@ -106,6 +106,7 @@ class Balancing:
                 self.prevErr = 0
                 self.sumErr = 0
                 self.prevTime = time.time()
+                self.integral = 0
 
                 self.hat_x = 0
                 self.hat_y = 0
@@ -114,14 +115,14 @@ class Balancing:
                 self.vel = 1
 
         def balance(self, targetAngle = 0):
-                time = time.time()
+                currTime = time.time()
                 error = self.mpu.getPitch() - targetAngle
                 proportional = self.kp * error
-                integral += self.ki *self.error
-                derivative = self.kd * (error - self.prevErr) / (time - self.prevTime)
-                self.prevTime = time
+                self.integral += self.ki * error
+                derivative = self.kd * (error - self.prevErr) / (currTime - self.prevTime)
+                self.prevTime = currTime
                 self.prevErr = error
-                effort = proportional + integral + derivative
+                effort = proportional + self.integral + derivative
 
                 print("angle: ", round(error, 2), "effort: ", round(effort, 2))
 
@@ -130,18 +131,30 @@ class Balancing:
         def drive(self, goalSpeed = 0):
                 balanceEffort = self.balance()
                 if (balanceEffort + goalSpeed > 1):
-                        self.motorA.forward(1)
-                        self.motorB.backward(1)
+                        self.motorA.forward(speed = 1)
+                        self.motorB.backward(speed = 1)
                 elif (balanceEffort - goalSpeed < -1):
-                        self.motorA.backward(1)
-                        self.motorB.forward(1)
+                        self.motorA.backward(speed = 1)
+                        self.motorB.forward(speed = 1)
                 elif (balanceEffort + goalSpeed > 0):
-                        self.motorA.forward(balanceEffort + goalSpeed)
-                        self.motorB.backward(balanceEffort + goalSpeed)
+                        self.motorA.forward(speed = (balanceEffort + goalSpeed))
+                        self.motorB.backward(speed = (balanceEffort + goalSpeed))
                 elif (balanceEffort - goalSpeed < 0):
-                        self.motorA.backward(-balanceEffort + goalSpeed)
-                        self.motorB.forward(-balanceEffort + goalSpeed)
-                
+                        self.motorA.backward(speed = (-balanceEffort + goalSpeed))
+                        self.motorB.forward(speed = (-balanceEffort + goalSpeed))
+
+        def spinup(self):
+                print("spinning forward ...")
+                self.motorA.forward(speed = 1)
+                self.motorB.backward(speed = 1)
+                time.sleep(2)
+
+                print("spinning backwards ...")
+                self.motorB.forward(speed = 1)
+                self.motorA.backward(speed = 1)
+                time.sleep(2)
+
+                print("ready")
 
 def main():
 
@@ -150,8 +163,8 @@ def main():
 
         mpu = MPU(alpha, sensor)
 
-        aFor = 27
-        aBack = 22
+        aFor = 11
+        aBack = 13
         bFor = 23
         bBack = 24
 
@@ -159,25 +172,17 @@ def main():
         ki = 0
         kd = 0
 
-        dev = InputDevice('/dev/input/event2') 
+#        dev = InputDevice('/dev/input/event2') 
 
-        robot = Balancing(aFor, aBack, bFor, bBack, kp, ki, kd, dev, mpu)
+        robot = Balancing(aFor, aBack, bFor, bBack, kp, ki, kd, 'dev', mpu)
 
         start = time.time()
 #       while (time.time() < (start + 20)):
+
+        robot.spinup()
         while True:
                 # mpu.compFilter()
                 robot.drive()
 
 if __name__ == '__main__':
         main()
-
-class PID:
-
-	def __init__(self, kp, ki, kd):
-		self.kp = kp
-		self.ki = ki
-		self.kd = kd
-
-		self.prevTime = time.time()
-
